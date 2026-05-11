@@ -247,6 +247,58 @@ def _transcribe_audio(f: SubmissionFile) -> str:
         return stub
 
 
+def _extract_text_from_raw(raw: bytes, file_type: str) -> str:
+    """
+    Convert raw (decrypted) file bytes to plain text for LLM input.
+
+    - DOCX / XLSX are ZIP-based (magic PK\x03\x04); detected by magic bytes.
+    - Everything else is decoded as UTF-8.
+    """
+    # ZIP-based Office formats (docx, xlsx, pptx, …)
+    if raw[:4] == b"PK\x03\x04":
+        import io
+        # Try Word (.docx) first
+        try:
+            import docx as _docx
+            doc = _docx.Document(io.BytesIO(raw))
+            lines: list[str] = []
+            # Top-level paragraphs
+            for p in doc.paragraphs:
+                if p.text.strip():
+                    lines.append(p.text)
+            # Table cells (common in real Word documents)
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        for p in cell.paragraphs:
+                            if p.text.strip():
+                                lines.append(p.text)
+            if lines:
+                return "\n".join(lines)
+            logger.warning("docx extraction yielded no text (paragraphs+tables empty)")
+        except Exception as exc:
+            logger.warning("docx parse failed: %s", exc)
+        # Fall back to Excel (.xlsx)
+        try:
+            import openpyxl
+            wb = openpyxl.load_workbook(io.BytesIO(raw), read_only=True, data_only=True)
+            rows: list[str] = []
+            for ws in wb.worksheets:
+                for row in ws.iter_rows(values_only=True):
+                    line = "\t".join(str(c) for c in row if c is not None)
+                    if line.strip():
+                        rows.append(line)
+            if rows:
+                return "\n".join(rows)
+            logger.warning("xlsx extraction yielded no text (all cells empty)")
+        except Exception as exc:
+            logger.warning("xlsx parse failed: %s", exc)
+        return "[binary Office file — could not extract text]"
+
+    # Plain text / CSV / other
+    return raw.decode("utf-8", errors="replace")
+
+
 def _read_text_files(files: list[SubmissionFile]) -> str:
     """
     Decrypt and read text content from evidence files for LLM input.
@@ -265,7 +317,12 @@ def _read_text_files(files: list[SubmissionFile]) -> str:
         try:
             file_key = derive_file_key(master_key, str(f.submission_id), f.content_hash)
             raw = decrypt_bytes(open(f.encrypted_path, "rb").read(), file_key)
-            text = raw.decode("utf-8", errors="replace")
+            text = _extract_text_from_raw(raw, f.file_type or "document")
+            if len(text) < 20:
+                logger.warning(
+                    "Extracted text for %s (%s) is very short (%d chars): %r",
+                    f.content_hash[:16], f.file_type, len(text), text,
+                )
             parts.append(f"--- [{f.file_type}] ---\n{text}")
         except Exception as exc:
             logger.warning("Could not read file %s: %s", f.content_hash[:16], exc)
