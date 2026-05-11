@@ -111,6 +111,7 @@ Beyond the scores, the model returns:
 | `evidence_types` | string[] | Document types present (`email_chain`, `personal_notes`, `analytical_memo`, `journalist_intake`, `audio_recording`, `document`, `spreadsheet`, `image`, `other`) |
 | `red_flags` | string[] | Concise factual observations about anomalies, contradictions, or authenticity concerns — **no names or identifying details** |
 | `key_claims_anonymised` | string[] | Core factual claims that can be investigated further — **no names or identifying details** |
+| `attribution_sentences` | object[] | Publication-ready sentences for direct use in reporting — see [Section 9](#9-interpreting-the-certificate) |
 
 ---
 
@@ -135,9 +136,29 @@ If `OPENAI_API_KEY` is not configured, the engine returns a clearly marked **moc
 
 ## 9. Interpreting the certificate
 
-When a Verification Certificate is issued, the `attribution_language` section contains three pre-written disclosure paragraphs that journalists can quote directly. These paragraphs are templated from the analysis output and adapt to the Bitcoin anchoring state:
+When a Verification Certificate is issued, the `attribution_language` section contains pre-written statements that journalists can paste directly into reporting copy, editor's notes, or legal disclosures.
 
-- If the OpenTimestamps confirmation is **pending**, the attribution says the evidence was "submitted for Bitcoin blockchain anchoring (confirmation pending)."
-- Once confirmed, it says the evidence was "anchored to the Bitcoin blockchain."
+### Provenance paragraphs (always present)
 
-The attribution language always includes the explicit provenance caveat: _"The certificate attests to provenance and integrity, not to the truth of the underlying allegations."_
+Two boilerplate paragraphs are generated for every certificate:
+
+1. A timestamping statement describing how and when the evidence was anchored, including whether Bitcoin confirmation is complete or pending.
+2. A provenance caveat: _"The certificate attests to provenance and integrity, not to the truth of the underlying allegations."_
+
+### Attribution sentences (evidence-specific)
+
+The LLM produces 3–6 complete, publication-ready sentences derived from the evidence content. Each sentence has a **tone** chosen per claim based on how strongly the evidence supports it:
+
+| Tone | When used | Example |
+|---|---|---|
+| `assertive` | Claim corroborated by multiple independent sources, internally consistent | `"The internal review process was bypassed entirely," said a source verified via ASVS's independent certification process (Certificate CERT-2026-A1B2C3).` |
+| `hedged` | Partial corroboration, or consistent but single source type | `According to a source whose materials were independently verified by ASVS (Certificate CERT-2026-A1B2C3), the approval was issued before the safety audit concluded.` |
+| `alleged` | Single document, red flags present, or claim cannot be cross-referenced | `A source independently verified by ASVS (Certificate CERT-2026-A1B2C3) alleged that the safety data was altered before submission.` |
+
+The tone is chosen **per claim**, not globally. A single certificate can contain a mix of assertive and hedged sentences depending on which specific claims the evidence supports most strongly.
+
+### Bitcoin confirmation state
+
+The provenance paragraph adapts automatically:
+- If the OpenTimestamps confirmation is **pending**: _"submitted for Bitcoin blockchain anchoring (confirmation pending)"_
+- Once confirmed: _"anchored to the Bitcoin blockchain"_

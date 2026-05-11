@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     # Security
     secret_key: str
 
+    # Platform identity (used in publication-ready attribution language)
+    platform_name: str = "ASVS"
+
     # LLM
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"

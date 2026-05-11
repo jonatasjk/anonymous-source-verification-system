@@ -107,6 +107,8 @@ class AnalysisResult(Base):
     # Anonymised structured output — no source names or verbatim quotes
     evidence_types = Column(JSONB)
     red_flags = Column(JSONB)
+    key_claims = Column(JSONB)          # anonymised factual claims for editorial use
+    attribution_quotes = Column(JSONB)  # publication-ready quote sentences
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     submission = relationship("Submission", back_populates="analysis_result")

@@ -37,6 +37,8 @@ def _build_attribution_language(
     corroborating_sources: int,
     rfc3161_timestamp: datetime | None,
     ots_confirmed: bool = False,
+    attribution_quotes: list[str] | None = None,
+    platform_name: str = "ASVS",
 ) -> list[str]:
     ts_str = rfc3161_timestamp.strftime("%B %d, %Y") if rfc3161_timestamp else "an independently verified date"
 
@@ -51,13 +53,8 @@ def _build_attribution_language(
             "and submitted for Bitcoin blockchain anchoring (confirmation pending)"
         )
 
-    return [
-        (
-            f"A source verified via our independent certification process "
-            f"(Certificate {cert_id}) provided documentation corroborated by "
-            f"{corroborating_sources} independent source(s) with an overall "
-            f"confidence score of {overall_confidence}/100."
-        ),
+    # --- Boilerplate provenance paragraphs ---
+    paragraphs: list[str] = [
         (
             f"Evidence reviewed for this report was authenticated using "
             f"{anchor_clause}, establishing that the materials "
@@ -72,6 +69,22 @@ def _build_attribution_language(
             f"underlying allegations."
         ),
     ]
+
+    # --- Publication-ready attribution sentences ---
+    # The LLM produced complete sentences with {platform} and {cert_id} placeholders.
+    # Each entry in attribution_quotes is now a dict with "text" and "tone".
+    # We substitute the placeholders and return them as-is — no additional wrapping.
+    attribution_sentences: list[str] = []
+    for entry in (attribution_quotes or []):
+        if isinstance(entry, dict):
+            text = entry.get("text", "")
+        else:
+            text = str(entry)
+        sentence = text.replace("{platform}", platform_name).replace("{cert_id}", cert_id)
+        if sentence:
+            attribution_sentences.append(sentence)
+
+    return paragraphs + attribution_sentences
 
 
 def generate_certificate(submission_id: str, db: Session) -> str:
@@ -137,6 +150,8 @@ def generate_certificate(submission_id: str, db: Session) -> str:
         analysis.corroborating_sources,
         rfc3161_ts,
         ots_confirmed=ots_confirmed,
+        attribution_quotes=analysis.attribution_quotes or [],
+        platform_name=settings.platform_name,
     )
 
     payload = {
@@ -158,6 +173,7 @@ def generate_certificate(submission_id: str, db: Session) -> str:
             "corroborating_sources": analysis.corroborating_sources,
             "red_flags": analysis.red_flags,
             "reliability_class": analysis.reliability_class,
+            "key_claims": analysis.key_claims or [],
         },
         "attribution_language": attribution,
     }

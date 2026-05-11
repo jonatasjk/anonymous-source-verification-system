@@ -1,0 +1,27 @@
+# v002 — Add key_claims and attribution_quotes columns to analysis_results
+# key_claims: anonymised factual claims for editorial use
+# attribution_quotes: publication-ready quote sentences for journalists
+
+databaseChangeLog:
+
+  - changeSet:
+      id: 002-add-key-claims
+      author: asvs
+      changes:
+        - addColumn:
+            tableName: analysis_results
+            columns:
+              - column:
+                  name: key_claims
+                  type: JSONB
+
+  - changeSet:
+      id: 002-add-attribution-quotes
+      author: asvs
+      changes:
+        - addColumn:
+            tableName: analysis_results
+            columns:
+              - column:
+                  name: attribution_quotes
+                  type: JSONB

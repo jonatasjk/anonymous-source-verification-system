@@ -102,12 +102,54 @@ Return ONLY a valid JSON object — no preamble, no markdown, no explanation out
   "corroborating_sources": <int — count of independent originating sources>,
   "evidence_types": [<subset of: email_chain, audio_recording, personal_notes, analytical_memo, journalist_intake, document, spreadsheet, image, other>],
   "red_flags": [<concise factual observations about anomalies, contradictions, or authenticity concerns — no names>],
-  "key_claims_anonymised": [<core factual claims that can be investigated further — no names or identifying details>]
+  "key_claims_anonymised": [<core factual claims that can be investigated further — no names or identifying details>],
+  "attribution_sentences": [<see instructions below>]
 }
 
+## Attribution sentences
+
+`attribution_sentences` is a list of 3–6 complete, publication-ready statements a journalist can \
+paste directly into a news article, editor's note, or legal disclosure. Each entry has two fields:
+
+- `text`: The full sentence with `{platform}` and `{cert_id}` as placeholders (Python will \
+  substitute these before the certificate is issued). Write the sentence exactly as it should \
+  appear in print.
+- `tone`: One of `"assertive"`, `"hedged"`, or `"alleged"` — chosen per claim, not globally.
+
+### Tone selection rules — choose per claim based on evidence strength
+
+**`assertive`** — The claim is corroborated by multiple independent sources and is internally \
+consistent. Use declarative past tense in a direct-quote form:
+  `"The internal review process was bypassed entirely," said a source verified via \
+{platform}'s independent certification process (Certificate {cert_id}).`
+
+**`hedged`** — The claim has partial corroboration, or is consistent but comes from a single \
+source type. Use an indirect attribution form:
+  `According to a source whose materials were independently verified by {platform} \
+(Certificate {cert_id}), the approval was issued before the safety audit concluded.`
+
+**`alleged`** — The claim rests on a single document, has red flags, or cannot be \
+cross-referenced internally. Use an allegation form:
+  `A source independently verified by {platform} (Certificate {cert_id}) alleged that \
+the safety data was altered before submission.`
+
+### Rules for all sentences
+- Each sentence conveys one specific, verifiable-in-principle claim from the evidence.
+- Do NOT reproduce verbatim text from the documents. Synthesise in plain English.
+- No names, institutions, exact dates, or figures that could identify the source.
+- Maximum 40 words per sentence.
+- Prefer concrete, specific claims over vague generalisations.
+- Return an empty list if the evidence package is empty or unreadable.
+
 If the evidence package is empty or entirely unreadable, return all scores as 0, reliability_class \
-as "LOW", and add a single red_flag: "Evidence package could not be evaluated."
+as "LOW", add a single red_flag: "Evidence package could not be evaluated.", and return an \
+empty list for attribution_sentences.
 """
+
+
+class _AttributionSentence(BaseModel):
+    text: str   # complete sentence with {platform} and {cert_id} placeholders
+    tone: str   # "assertive" | "hedged" | "alleged"
 
 
 class _AnalysisOutput(BaseModel):
@@ -120,6 +162,7 @@ class _AnalysisOutput(BaseModel):
     evidence_types: list[str]
     red_flags: list[str]
     key_claims_anonymised: list[str]
+    attribution_sentences: list[_AttributionSentence]
 
 
 def _mock_analysis(file_types: list[str]) -> _AnalysisOutput:
@@ -138,6 +181,16 @@ def _mock_analysis(file_types: list[str]) -> _AnalysisOutput:
         evidence_types=file_types,
         red_flags=[],
         key_claims_anonymised=["[Mock analysis — configure OPENAI_API_KEY for real scoring]"],
+        attribution_sentences=[
+            _AttributionSentence(
+                text=(
+                    '"[Mock] The evidence was reviewed and certified," said a source '
+                    "verified via {platform}'s independent certification process "
+                    "(Certificate {cert_id})."
+                ),
+                tone="assertive",
+            )
+        ],
     )
 
 
@@ -196,6 +249,8 @@ def analyse_submission(submission_id: str, db: Session) -> None:
         corroborating_sources=result.corroborating_sources,
         evidence_types=result.evidence_types,
         red_flags=result.red_flags,
+        key_claims=result.key_claims_anonymised,
+        attribution_quotes=[s.model_dump() for s in result.attribution_sentences],
     )
     db.add(db_result)
     submission.status = "ANALYZED"
