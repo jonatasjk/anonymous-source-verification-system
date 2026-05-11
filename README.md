@@ -91,7 +91,7 @@ python -c "import secrets; print(secrets.token_hex(32))"
 ### 2. Run database migrations
 
 ```bash
-docker compose --profile migrate up asvs-liquibase
+docker compose --profile migrate up liquibase
 ```
 
 This applies all Liquibase changesets and exits. Only needed on first run (or after a schema change).
@@ -149,7 +149,7 @@ docker compose up -d asvs-db asvs-redis
 #### 3. Run migrations
 
 ```bash
-docker compose --profile migrate up asvs-liquibase
+docker compose --profile migrate up liquibase
 ```
 
 #### 4. Backend
