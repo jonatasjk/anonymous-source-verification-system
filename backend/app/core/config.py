@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o"
     openai_temperature: float = 0.7
     openai_max_tokens: int = 2000
+    # gpt-4o context window is 128k tokens (~512k chars). 400k chars leaves
+    # room for the system prompt and response tokens across any number of files.
+    openai_max_chars_total: int = 400000
 
     # Storage
     storage_path: str = "storage"

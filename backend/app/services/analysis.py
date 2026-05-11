@@ -12,6 +12,8 @@ The confidence score reflects internal coherence — NOT semantic truth.
 """
 
 import logging
+import os
+import tempfile
 import uuid
 from datetime import datetime, timezone
 
@@ -194,28 +196,86 @@ def _mock_analysis(file_types: list[str]) -> _AnalysisOutput:
     )
 
 
+def _detect_audio_extension(data: bytes) -> str:
+    """Detect audio format from magic bytes, defaulting to .mp3."""
+    if data[:3] == b"ID3" or (len(data) >= 2 and data[0] == 0xFF and (data[1] & 0xE0) == 0xE0):
+        return ".mp3"
+    if data[:4] == b"RIFF":
+        return ".wav"
+    if data[:4] == b"fLaC":
+        return ".flac"
+    if data[:4] == b"OggS":
+        return ".ogg"
+    if len(data) >= 8 and data[4:8] == b"ftyp":
+        return ".mp4"
+    if data[:4] == b"\x1a\x45\xdf\xa3":
+        return ".webm"
+    return ".mp3"
+
+
+def _transcribe_audio(f: SubmissionFile) -> str:
+    """
+    Decrypt an audio file and transcribe it via the OpenAI Whisper API.
+    Returns a labelled transcript section, or a metadata stub on failure.
+    """
+    from openai import OpenAI
+
+    stub = f"[AUDIO_RECORDING — binary file, {f.size_bytes} bytes, hash: {f.content_hash[:16]}...]"
+    try:
+        master_key = settings.encryption_key
+        file_key = derive_file_key(master_key, str(f.submission_id), f.content_hash)
+        raw = decrypt_bytes(open(f.encrypted_path, "rb").read(), file_key)
+        ext = _detect_audio_extension(raw)
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
+            tmp.write(raw)
+            tmp_path = tmp.name
+        try:
+            client = OpenAI(api_key=settings.openai_api_key)
+            with open(tmp_path, "rb") as audio_file:
+                transcript = client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file,
+                )
+            text = transcript.text
+            logger.info("Transcribed audio %s (%d chars)", f.content_hash[:16], len(text))
+            return f"--- [AUDIO_RECORDING — TRANSCRIPT] ---\n{text}"
+        finally:
+            os.unlink(tmp_path)
+    except Exception as exc:
+        logger.warning("Could not transcribe audio %s: %s", f.content_hash[:16], exc)
+        return stub
+
+
 def _read_text_files(files: list[SubmissionFile]) -> str:
     """
     Decrypt and read text content from evidence files for LLM input.
-    Audio and image files are represented by their metadata only.
+    Audio files are transcribed via Whisper. Images are represented by metadata only.
     """
     master_key = settings.encryption_key
     parts: list[str] = []
 
     for f in files:
-        if f.file_type in ("audio_recording", "image"):
-            parts.append(f"[{f.file_type.upper()} — binary file, {f.size_bytes} bytes, hash: {f.content_hash[:16]}...]")
+        if f.file_type == "audio_recording":
+            parts.append(_transcribe_audio(f))
+            continue
+        if f.file_type == "image":
+            parts.append(f"[IMAGE — binary file, {f.size_bytes} bytes, hash: {f.content_hash[:16]}...]")
             continue
         try:
             file_key = derive_file_key(master_key, str(f.submission_id), f.content_hash)
             raw = decrypt_bytes(open(f.encrypted_path, "rb").read(), file_key)
-            text = raw.decode("utf-8", errors="replace")[:4000]  # cap per file
+            text = raw.decode("utf-8", errors="replace")
             parts.append(f"--- [{f.file_type}] ---\n{text}")
         except Exception as exc:
             logger.warning("Could not read file %s: %s", f.content_hash[:16], exc)
             parts.append(f"[{f.file_type} — could not decrypt for analysis]")
 
-    return "\n\n".join(parts)
+    combined = "\n\n".join(parts)
+    limit = settings.openai_max_chars_total
+    if len(combined) > limit:
+        logger.warning("Evidence text truncated to %d chars (was %d)", limit, len(combined))
+        combined = combined[:limit]
+    return combined
 
 
 def analyse_submission(submission_id: str, db: Session) -> None:

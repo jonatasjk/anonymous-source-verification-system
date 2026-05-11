@@ -38,10 +38,12 @@ When a submission contains multiple files, **all files are included in a single 
 Before the LLM call, the pipeline:
 
 1. Decrypts each file using its per-file derived key.
-2. Decodes to UTF-8 (binary files such as audio or images are represented by their type and size only).
-3. Caps each file at **4,000 characters** to stay within context limits.
-4. Concatenates all files with a `--- [file_type] ---` separator into a single evidence string.
-5. Wraps the assembled text between `--- EVIDENCE PACKAGE BEGIN ---` and `--- EVIDENCE PACKAGE END ---` delimiters.
+2. For **audio files**: transcribes the content via the OpenAI Whisper API (`whisper-1`). The audio format is detected from magic bytes (MP3, WAV, FLAC, OGG, MP4, WEBM) so the correct encoding is passed to Whisper. If transcription fails, a metadata stub is used as fallback.
+3. For **image files**: represented by a metadata stub (type, size, hash prefix) — image content is not analysed.
+4. For **text-based files**: decodes to UTF-8.
+5. Caps each file's contribution at **4,000 characters** (including transcribed audio).
+6. Concatenates all files with a `--- [file_type] ---` separator into a single evidence string.
+7. Wraps the assembled text between `--- EVIDENCE PACKAGE BEGIN ---` and `--- EVIDENCE PACKAGE END ---` delimiters.
 
 The assembled text is passed to the model with a framing header that identifies it as a pre-ingested, anonymised evidence package. Source-identifying information is stripped by the ingestion pipeline; the model is also instructed not to reproduce any that remains.
 
