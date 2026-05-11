@@ -31,6 +31,7 @@ _EXT_TYPE_MAP: dict[str, str] = {
     ".pdf": "document",
     ".txt": "document",
     ".docx": "document",
+    ".log": "log_file",
     ".xlsx": "spreadsheet",
     ".csv": "spreadsheet",
     ".png": "image",
