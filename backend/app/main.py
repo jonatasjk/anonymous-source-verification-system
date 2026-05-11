@@ -21,6 +21,8 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost",
         "http://localhost:80",
+        # Railway / production — set ALLOWED_ORIGINS env var as comma-separated list
+        *[o.strip() for o in __import__('os').environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()],
     ],
     allow_credentials=True,
     allow_methods=["*"],
