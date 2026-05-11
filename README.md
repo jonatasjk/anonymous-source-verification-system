@@ -1,3 +1,19 @@
+## About the Author
+
+<img src="docs/assets/jonatas.png" alt="Jonatas Kirsch" width="96" style="border-radius:50%;float:left;margin:0 16px 16px 0" />
+
+### Jônatas Kirsch
+
+- Senior full-stack engineer with 20+ years of experience.
+- Solo-architected an AI-powered merchant intelligence platform from zero to production;
+- Helped build the digital bank of the third-largest bank in Latin America.
+- Former fintech founder.
+- Strong track record of owning systems end-to-end (architecture → deployment → scale), shipping 0→1 products under regulatory constraints, and leading distributed engineering teams.
+
+<br clear="left" />
+
+---
+
 # ASVS — Anonymous Source Verification System
 
 A prototype system that receives evidence from anonymous sources, proves it existed at a specific point in time before any analysis occurs, and generates a privacy-preserving certificate with publication-ready attribution language for journalists.
@@ -14,6 +30,7 @@ The core problem: anyone can hash a file *after* creating it. ASVS solves this b
 |---|---|
 | [docs/BUSINESS_REQUIREMENTS.md](docs/BUSINESS_REQUIREMENTS.md) | Objectives, sample scenario, and certificate output format |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, component breakdown, security model, and scope decisions |
+| [docs/ANALYSIS_METHODOLOGY.md](docs/ANALYSIS_METHODOLOGY.md) | How the LLM analysis works, scoring dimensions, weights, and output fields |
 | [docs/sequence-diagram.puml](docs/sequence-diagram.puml) | Full end-to-end PlantUML sequence diagram |
 
 ### Submission Flow

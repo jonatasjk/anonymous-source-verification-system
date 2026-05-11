@@ -198,5 +198,7 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
-# Sample files for training
+# Sample files
 sample_evidences/
+backend/sample_evidence/
+backend/storage/
