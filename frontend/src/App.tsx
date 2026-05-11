@@ -5,6 +5,7 @@ import UploadWizard from '@/components/UploadWizard'
 import StatusDashboard from '@/components/StatusDashboard'
 import CertificateViewer from '@/components/CertificateViewer'
 import CertificatesList from '@/components/CertificatesList'
+import CertificateSearch from '@/components/CertificateSearch'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="/status/:id" element={<StatusDashboard />} />
             <Route path="/certificate/:id" element={<CertificateViewer />} />
             <Route path="/certificates" element={<CertificatesList />} />
+            <Route path="/search" element={<CertificateSearch />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

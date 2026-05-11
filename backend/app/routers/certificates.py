@@ -29,6 +29,19 @@ def list_certificates(db: Session = Depends(get_db)):
     ]
 
 
+@router.get("/certificates/{certificate_id}", response_model=CertificateResponse)
+def get_certificate_by_id(certificate_id: str, db: Session = Depends(get_db)):
+    """Return a VerificationCertificate by its CERT-YYYY-XXXXXX code."""
+    cert = (
+        db.query(Certificate)
+        .filter(Certificate.certificate_id == certificate_id.upper())
+        .first()
+    )
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found.")
+    return cert.payload
+
+
 def _get_certificate_or_404(submission_id: str, db: Session) -> Certificate:
     try:
         sid = uuid.UUID(submission_id)

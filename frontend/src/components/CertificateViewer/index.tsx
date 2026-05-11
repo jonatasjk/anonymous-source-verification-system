@@ -80,7 +80,10 @@ export default function CertificateViewer() {
               <ShieldCheck className="text-brand w-7 h-7" />
               <h1 className="text-2xl font-bold">Verification Certificate</h1>
             </div>
-            <p className="text-ink/50 font-mono text-sm">{certificate_id}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-ink/50 font-mono text-sm">{certificate_id}</p>
+              <CopyButton text={certificate_id} />
+            </div>
             <p className="text-ink/40 text-xs mt-1">Issued: {new Date(issued_at).toLocaleString()}</p>
           </div>
           <a

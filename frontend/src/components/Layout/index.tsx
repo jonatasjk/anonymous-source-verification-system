@@ -1,9 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { ShieldCheck, Upload, Award } from 'lucide-react'
+import { ShieldCheck, Upload, Award, Search } from 'lucide-react'
 
 const navItems = [
   { to: '/', label: 'Evidence Verification', icon: Upload, end: true },
   { to: '/certificates', label: 'Certificates', icon: Award, end: false },
+  { to: '/search', label: 'Search Certificate', icon: Search, end: false },
 ]
 
 export default function Layout() {

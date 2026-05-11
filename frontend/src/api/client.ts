@@ -57,6 +57,13 @@ export async function verifyCertificate(body: VerifyRequest): Promise<VerifyResp
   return data
 }
 
+export async function getCertificateById(certificateId: string): Promise<CertificateResponse> {
+  const { data } = await client.get<CertificateResponse>(
+    `/certificates/${encodeURIComponent(certificateId.toUpperCase())}`
+  )
+  return data
+}
+
 export function certificatePdfUrl(submissionId: string): string {
   return `/api/submissions/${submissionId}/certificate.pdf`
 }
