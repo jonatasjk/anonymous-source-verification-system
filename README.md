@@ -4,13 +4,18 @@
 
 ### Jônatas Kirsch
 
-- Senior full-stack engineer with 20+ years of experience.
+- Full-stack engineer with 20 years of experience.
 - Solo-architected an AI-powered merchant intelligence platform from zero to production;
 - Helped build the digital bank of the third-largest bank in Latin America.
-- Former fintech founder.
-- Strong track record of owning systems end-to-end (architecture → deployment → scale), shipping 0→1 products under regulatory constraints, and leading distributed engineering teams.
+- Strong track record of owning systems end-to-end (architecture → deployment → scale), shipping 0→1 products under regulatory constraints.
 
 <br clear="left" />
+
+---
+
+## AI Workflow
+
+This project was built using GitHub Copilot (Claude Sonnet 4.6) as an AI pair-programmer inside VS Code. The workflow combined agent-mode for multi-file feature implementation — ingestion pipeline, Celery tasks, Liquibase migrations, and React components — with direct code editing for surgical fixes. All architectural decisions, cryptographic invariants, and methodology were written in structured instruction files ([`docs/AI_AGENT_INSTRUCTIONS.md`](docs/AI_AGENT_INSTRUCTIONS.md), [`docs/skills/`](docs/skills/)) that were injected into every Copilot session as context, keeping the agent aligned across multiple long conversations without drift.
 
 ---
 
