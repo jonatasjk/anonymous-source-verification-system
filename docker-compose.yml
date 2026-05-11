@@ -3,7 +3,7 @@ name: asvs
 services:
   # ── Infrastructure ──────────────────────────────────────────────────────────
 
-  asvs-db:
+  db:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
@@ -18,7 +18,7 @@ services:
       timeout: 5s
       retries: 5
 
-  asvs-redis:
+  redis:
     image: redis:7-alpine
     restart: unless-stopped
     command: redis-server --save 60 1 --loglevel warning
@@ -32,15 +32,15 @@ services:
 
   # ── Database migrations ──────────────────────────────────────────────────────
 
-  asvs-liquibase:
+  liquibase:
     image: liquibase/liquibase:4.29
     depends_on:
-      asvs-db:
+      db:
         condition: service_healthy
     volumes:
       - ./backend/db/changelog:/liquibase/changelog
     environment:
-      LIQUIBASE_COMMAND_URL: jdbc:postgresql://asvs-db:5432/${POSTGRES_DB:-asvs}
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-asvs}
       LIQUIBASE_COMMAND_USERNAME: ${POSTGRES_USER:-asvs}
       LIQUIBASE_COMMAND_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/db.changelog-root.yaml
@@ -50,7 +50,7 @@ services:
 
   # ── Backend ─────────────────────────────────────────────────────────────────
 
-  asvs-api:
+  api:
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -58,14 +58,14 @@ services:
     env_file:
       - ./.env
     environment:
-      POSTGRES_HOST: asvs-db
-      REDIS_URL: redis://asvs-redis:6379/0
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
     volumes:
       - evidence_storage:/app/storage
     depends_on:
-      asvs-db:
+      db:
         condition: service_healthy
-      asvs-redis:
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
@@ -73,7 +73,7 @@ services:
       timeout: 5s
       retries: 5
 
-  asvs-worker:
+  worker:
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -82,17 +82,17 @@ services:
     env_file:
       - ./.env
     environment:
-      POSTGRES_HOST: asvs-db
-      REDIS_URL: redis://asvs-redis:6379/0
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
     volumes:
       - evidence_storage:/app/storage
     depends_on:
-      asvs-db:
+      db:
         condition: service_healthy
-      asvs-redis:
+      redis:
         condition: service_healthy
 
-  asvs-beat:
+  beat:
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -101,14 +101,14 @@ services:
     env_file:
       - ./.env
     environment:
-      POSTGRES_HOST: asvs-db
-      REDIS_URL: redis://asvs-redis:6379/0
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
     depends_on:
-      - asvs-redis
+      - redis
 
   # ── Frontend ─────────────────────────────────────────────────────────────────
 
-  asvs-frontend:
+  frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -116,7 +116,7 @@ services:
     ports:
       - "80:80"
     depends_on:
-      asvs-api:
+      api:
         condition: service_healthy
 
 volumes:
