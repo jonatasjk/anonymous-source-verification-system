@@ -281,6 +281,7 @@ def _call_openai(evidence_text: str) -> _AnalysisOutput:
             },
         ],
         response_format=_AnalysisOutput,
-        temperature=0.1,
+        temperature=settings.openai_temperature,
+        max_tokens=settings.openai_max_tokens,
     )
     return response.choices[0].message.parsed
