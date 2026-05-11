@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import Layout from '@/components/Layout'
+import LandingPage from '@/components/LandingPage'
 import UploadWizard from '@/components/UploadWizard'
 import StatusDashboard from '@/components/StatusDashboard'
 import CertificateViewer from '@/components/CertificateViewer'
@@ -21,8 +22,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route element={<Layout />}>
-            <Route path="/" element={<UploadWizard />} />
+            <Route path="/submit" element={<UploadWizard />} />
             <Route path="/status/:id" element={<StatusDashboard />} />
             <Route path="/certificate/:id" element={<CertificateViewer />} />
             <Route path="/certificates" element={<CertificatesList />} />
