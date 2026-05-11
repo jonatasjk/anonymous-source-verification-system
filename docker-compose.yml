@@ -1,0 +1,125 @@
+name: asvs
+
+services:
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+
+  asvs-db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-asvs}
+      POSTGRES_USER: ${POSTGRES_USER:-asvs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-asvs} -d ${POSTGRES_DB:-asvs}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  asvs-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Database migrations ──────────────────────────────────────────────────────
+
+  asvs-liquibase:
+    image: liquibase/liquibase:4.29
+    depends_on:
+      asvs-db:
+        condition: service_healthy
+    volumes:
+      - ./backend/db/changelog:/liquibase/changelog
+    environment:
+      LIQUIBASE_COMMAND_URL: jdbc:postgresql://asvs-db:5432/${POSTGRES_DB:-asvs}
+      LIQUIBASE_COMMAND_USERNAME: ${POSTGRES_USER:-asvs}
+      LIQUIBASE_COMMAND_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      LIQUIBASE_COMMAND_CHANGELOG_FILE: changelog/db.changelog-root.yaml
+    command: update
+    profiles:
+      - migrate
+
+  # ── Backend ─────────────────────────────────────────────────────────────────
+
+  asvs-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      POSTGRES_HOST: asvs-db
+      REDIS_URL: redis://asvs-redis:6379/0
+    volumes:
+      - evidence_storage:/app/storage
+    depends_on:
+      asvs-db:
+        condition: service_healthy
+      asvs-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  asvs-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2
+    env_file:
+      - ./backend/.env
+    environment:
+      POSTGRES_HOST: asvs-db
+      REDIS_URL: redis://asvs-redis:6379/0
+    volumes:
+      - evidence_storage:/app/storage
+    depends_on:
+      asvs-db:
+        condition: service_healthy
+      asvs-redis:
+        condition: service_healthy
+
+  asvs-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+    env_file:
+      - ./backend/.env
+    environment:
+      POSTGRES_HOST: asvs-db
+      REDIS_URL: redis://asvs-redis:6379/0
+    depends_on:
+      - asvs-redis
+
+  # ── Frontend ─────────────────────────────────────────────────────────────────
+
+  asvs-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      asvs-api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  evidence_storage:
