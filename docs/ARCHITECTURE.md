@@ -278,7 +278,7 @@ The detailed sequence is in [sequence-diagram.puml](sequence-diagram.puml). Summ
 ## 7. Project Structure
 
 ```
-objection/
+asvs/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py                  # FastAPI app entrypoint
