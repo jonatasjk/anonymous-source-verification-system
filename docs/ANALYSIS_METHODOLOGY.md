@@ -33,12 +33,15 @@ This caveat is printed verbatim on every Verification Certificate.
 
 ## 3. Input to the model
 
+When a submission contains multiple files, **all files are included in a single LLM call** — the model analyses the entire package together, not each file individually. This is essential for the corroboration and consistency scores, which measure agreement _across_ documents.
+
 Before the LLM call, the pipeline:
 
 1. Decrypts each file using its per-file derived key.
 2. Decodes to UTF-8 (binary files such as audio or images are represented by their type and size only).
 3. Caps each file at **4,000 characters** to stay within context limits.
-4. Concatenates all files with a `--- [file_type] ---` separator.
+4. Concatenates all files with a `--- [file_type] ---` separator into a single evidence string.
+5. Wraps the assembled text between `--- EVIDENCE PACKAGE BEGIN ---` and `--- EVIDENCE PACKAGE END ---` delimiters.
 
 The assembled text is passed to the model with a framing header that identifies it as a pre-ingested, anonymised evidence package. Source-identifying information is stripped by the ingestion pipeline; the model is also instructed not to reproduce any that remains.
 
