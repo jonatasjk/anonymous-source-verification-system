@@ -65,9 +65,7 @@ The core problem: anyone can hash a file *after* creating it. ASVS solves this b
 
 ## Prerequisites
 
-- **Docker Desktop** 4.x or later (PostgreSQL and Redis run as containers)
-- **Python 3.12+** with `pip`
-- **Node.js 22+** with `npm`
+- **Docker Desktop** 4.x or later
 - An **OpenAI API key** (or a local [Ollama](https://ollama.com) instance)
 
 ---
@@ -80,8 +78,8 @@ The core problem: anyone can hash a file *after* creating it. ASVS solves this b
 git clone https://github.com/jonatasjk/anonymous-source-verification-system.git
 cd anonymous-source-verification-system
 
-cp backend/.env.example backend/.env
-# Edit backend/.env — set POSTGRES_PASSWORD, SECRET_KEY, and OPENAI_API_KEY
+cp .env.example .env
+# Edit .env — set POSTGRES_PASSWORD, SECRET_KEY, and OPENAI_API_KEY
 ```
 
 Generate a secure `SECRET_KEY`:
@@ -90,19 +88,71 @@ Generate a secure `SECRET_KEY`:
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-### 2. Start infrastructure
+### 2. Run database migrations
 
 ```bash
-docker compose -f backend/docker-compose.yml up -d
+docker compose --profile migrate up asvs-liquibase
 ```
 
-### 3. Run database migrations
+This applies all Liquibase changesets and exits. Only needed on first run (or after a schema change).
+
+### 3. Start all services
 
 ```bash
-docker compose -f backend/docker-compose.yml --profile migrate up liquibase
+docker compose up -d
 ```
 
-### 4. Install and start the backend
+This starts: PostgreSQL, Redis, the FastAPI API, Celery worker, Celery Beat, and the React frontend (nginx).
+
+**The application is available at [http://localhost](http://localhost).**
+
+The API docs are available at [http://localhost/api/docs](http://localhost/api/docs).
+
+### Stopping
+
+```bash
+docker compose down
+```
+
+To also remove volumes (wipes the database and evidence storage):
+
+```bash
+docker compose down -v
+```
+
+---
+
+## Local Development (without Docker)
+
+<details>
+<summary>Expand for instructions</summary>
+
+#### Prerequisites
+
+- **Python 3.12+**
+- **Node.js 22+**
+- Docker running (PostgreSQL and Redis still run as containers)
+
+#### 1. Configure environment
+
+```bash
+cp .env.example .env
+# Edit .env — set POSTGRES_PASSWORD, SECRET_KEY, OPENAI_API_KEY
+```
+
+#### 2. Start infrastructure only
+
+```bash
+docker compose up -d asvs-db asvs-redis
+```
+
+#### 3. Run migrations
+
+```bash
+docker compose --profile migrate up asvs-liquibase
+```
+
+#### 4. Backend
 
 ```bash
 cd backend
@@ -110,24 +160,26 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 uvicorn app.main:app --reload
-# API available at http://localhost:8000
+# API → http://localhost:8000
 ```
 
-### 5. Start the Celery worker
+#### 5. Celery worker
 
 ```bash
-# In a separate terminal, with .venv active
+# Separate terminal, .venv active
 celery -A app.tasks.celery_app worker --loglevel=info
 ```
 
-### 6. Install and start the frontend
+#### 6. Frontend
 
 ```bash
 cd frontend
 npm install
 npm run dev
-# UI available at http://localhost:5173
+# UI → http://localhost:5173
 ```
+
+</details>
 
 ---
 
@@ -135,6 +187,8 @@ npm run dev
 
 ```
 anonymous-source-verification-system/
+├── docker-compose.yml        # Full stack — all services
+├── .env.example              # Environment variable template
 ├── backend/
 │   ├── app/                  # FastAPI application
 │   │   ├── routers/          # API endpoints
@@ -144,10 +198,11 @@ anonymous-source-verification-system/
 │   │   └── core/             # Config, crypto helpers, Merkle tree
 │   ├── db/changelog/         # Liquibase YAML migration changelogs
 │   ├── sample_evidence/      # Test fixtures for the academic misconduct scenario
-│   ├── .env.example
-│   ├── docker-compose.yml
+│   ├── Dockerfile
 │   └── requirements.txt
 ├── frontend/
+│   ├── Dockerfile
+│   ├── nginx.conf
 │   └── src/
 │       ├── components/       # UploadWizard, StatusDashboard, CertificateViewer
 │       ├── hooks/
