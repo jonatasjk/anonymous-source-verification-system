@@ -91,56 +91,49 @@ def _get_rfc3161_raw(merkle_root_bytes: bytes) -> bytes:
 def _stamp_ots(merkle_root_bytes: bytes) -> bytes:
     """
     Submit the Merkle root to OpenTimestamps calendar servers.
-    Returns serialised .ots file bytes.
+    Returns serialised DetachedTimestampFile bytes, or empty bytes on failure.
+
+    The correct flow:
+      1. cal.submit(raw_hash_bytes) → returns a Timestamp with PendingAttestation
+      2. Merge the returned Timestamp into file_ts.timestamp
+      3. Serialise the whole DetachedTimestampFile for storage
+
+    DetachedTimestampFile lives in otsclient.cmds (not opentimestamps.timestamp).
+    cal.submit() takes raw bytes (the commitment digest), not a Timestamp object.
     """
     try:
+        from otsclient.cmds import DetachedTimestampFile
         from opentimestamps.core.timestamp import Timestamp
         from opentimestamps.core.op import OpSHA256
         from opentimestamps.core.serialize import BytesSerializationContext
-        from opentimestamps.timestamp import DetachedTimestampFile
         import opentimestamps.calendar
 
         file_ts = DetachedTimestampFile(OpSHA256(), Timestamp(merkle_root_bytes))
 
+        submitted = False
         for url in settings.ots_calendar_urls:
             try:
                 cal = opentimestamps.calendar.RemoteCalendar(url)
-                cal.submit(file_ts.timestamp)
+                # submit() takes raw hash bytes and returns a Timestamp containing
+                # a PendingAttestation; merge it back so the .ots file is complete.
+                calendar_timestamp = cal.submit(file_ts.timestamp.msg, timeout=10)
+                file_ts.timestamp.merge(calendar_timestamp)
+                submitted = True
                 logger.info("OTS stamp submitted to %s", url)
             except Exception as exc:
                 logger.warning("OTS calendar %s failed: %s", url, exc)
+
+        if not submitted:
+            logger.warning("OTS: all calendars failed — no Bitcoin stamp will be stored")
+            return b""
 
         ctx = BytesSerializationContext()
         file_ts.serialize(ctx)
         return ctx.getbytes()
 
     except Exception as exc:
-        logger.warning("opentimestamps library failed (%s), using HTTP fallback", exc)
-        return _stamp_ots_http(merkle_root_bytes)
-
-
-def _stamp_ots_http(merkle_root_bytes: bytes) -> bytes:
-    """HTTP fallback: POST hash to OTS calendars and concatenate responses."""
-    responses: list[bytes] = []
-    for url in settings.ots_calendar_urls:
-        try:
-            with httpx.Client(timeout=15) as client:
-                resp = client.post(
-                    f"{url}/digest",
-                    content=merkle_root_bytes,
-                    headers={
-                        "Content-Type": "application/x-www-form-urlencoded",
-                        "Accept": "application/vnd.opentimestamps.v1",
-                    },
-                )
-                if resp.status_code == 200:
-                    responses.append(resp.content)
-                    logger.info("OTS HTTP stamp from %s", url)
-        except Exception as exc:
-            logger.warning("OTS HTTP %s failed: %s", url, exc)
-
-    # Return first successful response or empty bytes
-    return responses[0] if responses else b""
+        logger.warning("opentimestamps library unavailable (%s) — no Bitcoin stamp", exc)
+        return b""
 
 
 # ---------------------------------------------------------------------------
