@@ -1,0 +1,152 @@
+@startuml Anonymous Source Verification System — Submission Flow
+
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 200
+skinparam sequence {
+    ArrowColor #444444
+    ActorBorderColor #444444
+    LifeLineBorderColor #888888
+    ParticipantBorderColor #444444
+    ParticipantBackgroundColor #F5F5F5
+    ParticipantFontColor #222222
+    BoxBackgroundColor #FAFAFA
+    BoxBorderColor #CCCCCC
+}
+
+actor       "Anonymous Source"  as Source
+participant "Frontend\n(React/TS)"  as FE
+participant "Ingestion\nService"    as Ingest
+participant "Encrypted\nFile Store" as Store
+participant "PostgreSQL\nMetadata DB" as DB
+participant "Redis\n(Broker + Cache)" as Redis
+participant "Celery\nWorker" as Worker
+participant "Timestamping\nService"  as TS
+participant "RFC 3161 TSA\n(FreeTSA.org)" as TSA
+participant "OpenTimestamps\n(Bitcoin)"   as OTS
+participant "Analysis\nEngine (LLM)"      as LLM
+participant "Certificate\nService"        as Cert
+
+== 1. Evidence Upload ==
+
+Source -> FE : Select evidence files +\noptional metadata
+FE -> Ingest : POST /api/submissions\n(multipart, files + metadata)
+
+group Ingestion
+    Ingest -> Ingest : SHA-256 each file
+    Ingest -> Ingest : Build Merkle tree across all file hashes
+    Ingest -> Ingest : Compute Merkle root
+    Ingest -> Ingest : Compute per-file proof paths\n(sibling hash list from leaf to root)
+    Ingest -> Ingest : Generate submission_id\n(UUIDv4, no PII)
+    Ingest -> Store  : Encrypt & store files\n(AES-256-GCM, per-file key)
+    Ingest -> DB     : INSERT submission record\n(id, merkle_root, proof_paths, status=INGESTED)
+    Ingest -> Redis  : SET submission:{id}:status = INGESTED
+    Ingest -> Redis  : Enqueue Celery task chain\n(timestamp → analyze → certify)
+    Ingest --> FE    : 202 Accepted\n{ submission_id }
+end
+
+FE --> Source : Show submission_id\n& progress dashboard
+
+== 2. Async Pipeline (Celery Worker) ==
+
+Redis -> Worker : Dequeue pipeline task chain
+
+== 3. Timestamping ==
+
+Worker -> TS : Execute timestamp_submission task
+
+group RFC 3161 Trusted Timestamp (Primary)
+    TS -> TSA : Send merkle_root hash
+    TSA --> TS : Signed .tsr token\n(hash + TSA signature + UTC timestamp)
+    TS -> Store : Store .tsr token
+    TS -> DB   : UPDATE submission\n(rfc3161_token_hash, rfc3161_timestamp)
+end
+
+group OpenTimestamps — Bitcoin Anchor (Secondary)
+    TS -> OTS : Submit merkle_root hash
+    OTS --> TS : .ots receipt\n(pending Bitcoin confirmation)
+    TS -> Store : Store .ots file
+    TS -> DB    : UPDATE submission\n(ots_file_hash, status=TIMESTAMPED)
+    TS -> Redis : SET submission:{id}:status = TIMESTAMPED
+    note over OTS : Bitcoin block confirmed\n(~10 min, OP_RETURN)\nCelery Beat polls every 5 min
+    OTS --> Worker  : Block height & block timestamp
+    Worker -> DB    : UPDATE submission\n(bitcoin_block, block_timestamp)
+end
+
+== 4. Evidence Analysis ==
+
+Worker -> LLM : Execute analyze_submission task\n(anonymized file contents + metadata)
+
+group LLM Analysis Engine
+    LLM -> LLM : Evaluate Consistency\n(facts, dates, names agree?)
+    LLM -> LLM : Evaluate Corroboration\n(independent sources / doc types)
+    LLM -> LLM : Evaluate Plausibility\n(known formats & institutional practices)
+    LLM -> LLM : Extract evidence types,\nkey claims, red flags
+    LLM --> Worker : Structured JSON scores\n{ consistency, corroboration,\n  plausibility, overall, reliability_class }
+    Worker -> DB    : UPDATE submission\n(analysis scores, status=ANALYZED)
+    Worker -> Redis : SET submission:{id}:status = ANALYZED
+end
+
+== 5. Certificate Generation ==
+
+Worker -> Cert : Execute generate_certificate task
+
+group Certificate Service
+    Cert -> DB   : Read submission +\nanalysis + timestamp proofs
+    Cert -> Cert : Build VerificationCertificate\n(CERT-YYYY-XXXXXX)
+    Cert -> Cert : Generate attribution\nlanguage snippets
+    Cert -> DB   : INSERT certificate\n(no PII, no file contents)
+    Cert --> Worker : certificate_id
+    Worker -> DB    : UPDATE submission\n(status=COMPLETE)
+    Worker -> Redis : SET submission:{id}:status = COMPLETE
+end
+
+== 6. Certificate Retrieval ==
+
+Source -> FE  : Poll status
+FE -> Redis   : GET /api/submissions/{id}/status\n(reads Redis key — no DB hit)
+Redis --> FE  : { status: COMPLETE }
+
+FE -> Cert    : GET /api/submissions/{id}/certificate
+Cert -> DB    : Fetch certificate
+DB --> Cert   : VerificationCertificate JSON
+Cert --> FE   : Certificate JSON\n(scores, timestamp proofs,\nper-file merkle_proof paths,\nattribution language)
+
+FE --> Source : Display Certificate Viewer\n(confidence scores, proofs,\ncopy-ready attribution text)
+
+== 7. Selective Disclosure (Optional) ==
+
+note over Source, Cert
+  A journalist can authenticate a single file without
+  revealing other files in the bundle:
+  1. Share the file + its merkle_proof path + merkle_root
+  2. Any verifier recomputes: hash(leaf + proof_path) == root
+  3. Sibling hashes are opaque — other files are not revealed
+end note
+
+Source -> FE  : Request proof path for one file
+FE -> Cert    : GET /api/submissions/{id}/files/{file_hash}/proof
+Cert -> DB    : Fetch proof path for file_hash
+DB --> Cert   : { proof_path: [...sibling hashes...] }
+Cert --> FE   : { file_hash, proof_path, merkle_root }
+FE --> Source : Proof path to share with published document
+
+== 8. Independent Verification (Public) ==
+
+note over Source, Cert
+  Any third party can independently verify authenticity
+  without trusting this system:
+  • RFC 3161 .tsr token verifiable with TSA public cert
+  • OpenTimestamps .ots file verifiable against Bitcoin blockchain
+end note
+
+Source -> FE  : Provide certificate_id + merkle_root
+FE -> Cert    : POST /api/verify\n{ certificate_id, merkle_root }
+Cert -> TSA   : Verify .tsr token signature
+Cert -> OTS   : Verify .ots file against blockchain
+TSA --> Cert  : Valid / Invalid
+OTS --> Cert  : Valid / Invalid
+Cert --> FE   : Verification result\n{ rfc3161: valid, opentimestamps: valid }
+FE --> Source : Timestamp proofs confirmed ✓
+
+@enduml

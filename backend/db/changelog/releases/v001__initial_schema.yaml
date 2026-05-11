@@ -1,0 +1,261 @@
+# v001 — Initial schema
+# Submission records, per-file hashes + Merkle proof paths,
+# timestamp proofs, analysis results, and certificates.
+# No source PII is stored anywhere in this schema.
+
+databaseChangeLog:
+
+  - changeSet:
+      id: 001-create-submissions
+      author: asvs
+      changes:
+        - createTable:
+            tableName: submissions
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: merkle_root
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_count
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 001-create-submission-files
+      author: asvs
+      changes:
+        - createTable:
+            tableName: submission_files
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: submission_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_files_submission
+                    references: submissions(id)
+              # SHA-256 of the original filename — filename itself is not stored
+              - column:
+                  name: filename_hash
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: content_hash
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: file_type
+                  type: VARCHAR(64)
+              - column:
+                  name: size_bytes
+                  type: BIGINT
+              # Ordered array of sibling hashes for Merkle selective disclosure
+              - column:
+                  name: merkle_proof_path
+                  type: JSONB
+                  constraints:
+                    nullable: false
+              - column:
+                  name: encrypted_path
+                  type: TEXT
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: submission_files
+            indexName: idx_files_submission_id
+            columns:
+              - column:
+                  name: submission_id
+
+  - changeSet:
+      id: 001-create-timestamp-proofs
+      author: asvs
+      changes:
+        - createTable:
+            tableName: timestamp_proofs
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: submission_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    unique: true
+                    foreignKeyName: fk_ts_submission
+                    references: submissions(id)
+              # RFC 3161
+              - column:
+                  name: rfc3161_tsa
+                  type: VARCHAR(255)
+              - column:
+                  name: rfc3161_token_hash
+                  type: VARCHAR(64)
+              - column:
+                  name: rfc3161_timestamp
+                  type: TIMESTAMPTZ
+              - column:
+                  name: rfc3161_tsr_path
+                  type: TEXT
+              - column:
+                  name: rfc3161_cert_generation
+                  type: VARCHAR(32)
+              - column:
+                  name: rfc3161_cert_algorithm
+                  type: VARCHAR(64)
+              # OpenTimestamps
+              - column:
+                  name: ots_file_hash
+                  type: VARCHAR(64)
+              - column:
+                  name: ots_file_path
+                  type: TEXT
+              - column:
+                  name: ots_bitcoin_block
+                  type: BIGINT
+              - column:
+                  name: ots_block_timestamp
+                  type: TIMESTAMPTZ
+              - column:
+                  name: ots_confirmed
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 001-create-analysis-results
+      author: asvs
+      changes:
+        - createTable:
+            tableName: analysis_results
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: submission_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    unique: true
+                    foreignKeyName: fk_analysis_submission
+                    references: submissions(id)
+              - column:
+                  name: overall_confidence
+                  type: SMALLINT
+              - column:
+                  name: consistency_score
+                  type: SMALLINT
+              - column:
+                  name: corroboration_score
+                  type: SMALLINT
+              - column:
+                  name: plausibility_score
+                  type: SMALLINT
+              - column:
+                  name: reliability_class
+                  type: VARCHAR(16)
+              - column:
+                  name: corroborating_sources
+                  type: SMALLINT
+              # Anonymized structured output — no source names or verbatim quotes
+              - column:
+                  name: evidence_types
+                  type: JSONB
+              - column:
+                  name: red_flags
+                  type: JSONB
+              - column:
+                  name: created_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 001-create-certificates
+      author: asvs
+      changes:
+        - createTable:
+            tableName: certificates
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: certificate_id
+                  type: VARCHAR(32)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: submission_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    unique: true
+                    foreignKeyName: fk_cert_submission
+                    references: submissions(id)
+              # Full certificate JSON cached for fast retrieval
+              - column:
+                  name: payload
+                  type: JSONB
+                  constraints:
+                    nullable: false
+              - column:
+                  name: issued_at
+                  type: TIMESTAMPTZ
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false
+        - createIndex:
+            tableName: certificates
+            indexName: idx_certificates_certificate_id
+            columns:
+              - column:
+                  name: certificate_id

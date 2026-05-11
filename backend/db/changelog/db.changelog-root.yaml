@@ -1,0 +1,3 @@
+databaseChangeLog:
+  - include:
+      file: changelog/releases/v001__initial_schema.yaml
