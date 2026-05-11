@@ -1,19 +1,18 @@
 import { useCallback, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useNavigate } from 'react-router-dom'
-import { Upload, FileText, X, ShieldCheck, Loader2 } from 'lucide-react'
+import { Upload, FileText, X, Loader2 } from 'lucide-react'
 import { submitFiles } from '@/api/client'
 
 const MAX_FILES = 20
 const MAX_SIZE = 50 * 1024 * 1024 // 50 MB
 
-type Step = 1 | 2 | 3
+type Step = 1 | 2
 
 export default function UploadWizard() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>(1)
   const [files, setFiles] = useState<File[]>([])
-  const [submissionId, setSubmissionId] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -52,8 +51,7 @@ export default function UploadWizard() {
     setError('')
     try {
       const result = await submitFiles(files)
-      setSubmissionId(result.submission_id)
-      setStep(3)
+      navigate(`/status/${result.submission_id}`)
     } catch (err) {
       setError('Submission failed. Please try again.')
     } finally {
@@ -62,19 +60,11 @@ export default function UploadWizard() {
   }
 
   return (
-    <div className="min-h-screen bg-surface text-ink flex flex-col items-center justify-center px-4 py-12">
+    <div className="flex-1 text-ink flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-2xl">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <ShieldCheck className="text-brand w-8 h-8" />
-          <h1 className="text-2xl font-bold tracking-tight">
-            Anonymous Source Verification
-          </h1>
-        </div>
-
         {/* Step indicator */}
         <div className="flex gap-4 mb-8">
-          {(['Select Files', 'Review', 'Confirmation'] as const).map((label, i) => (
+          {(['Select Files', 'Review'] as const).map((label, i) => (
             <div key={label} className="flex items-center gap-2">
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${
@@ -90,7 +80,7 @@ export default function UploadWizard() {
               <span className={step === i + 1 ? 'text-ink' : 'text-ink/40'}>
                 {label}
               </span>
-              {i < 2 && <div className="w-8 h-px bg-surface-border" />}
+              {i < 1 && <div className="w-8 h-px bg-surface-border" />}
             </div>
           ))}
         </div>
@@ -197,27 +187,6 @@ export default function UploadWizard() {
         )}
 
         {/* Step 3 — Confirmation */}
-        {step === 3 && (
-          <div className="space-y-6 text-center">
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-8">
-              <ShieldCheck className="mx-auto mb-4 text-emerald-600 w-12 h-12" />
-              <h2 className="text-xl font-bold mb-2">Submission received</h2>
-              <p className="text-ink/60 text-sm mb-6">
-                Save your submission ID. You will need it to retrieve your certificate.
-              </p>
-              <div className="bg-surface-border rounded-lg px-6 py-3 font-mono text-brand text-sm break-all">
-                {submissionId}
-              </div>
-            </div>
-
-            <button
-              onClick={() => navigate(`/status/${submissionId}`)}
-              className="w-full py-3 rounded-lg bg-brand hover:bg-brand-dark text-white font-semibold transition-colors"
-            >
-              Track processing status →
-            </button>
-          </div>
-        )}
       </div>
     </div>
   )

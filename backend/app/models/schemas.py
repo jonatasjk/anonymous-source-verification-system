@@ -83,6 +83,14 @@ class CertificateResponse(BaseModel):
     attribution_language: list[str]
 
 
+class CertificateListItem(BaseModel):
+    certificate_id: str
+    submission_id: UUID
+    issued_at: datetime
+    overall_confidence: int
+    reliability_class: str
+
+
 # ---------------------------------------------------------------------------
 # Verify
 # ---------------------------------------------------------------------------

@@ -85,3 +85,11 @@ export interface VerifyResponse {
   opentimestamps_confirmed: boolean
   merkle_root_matches: boolean
 }
+
+export interface CertificateListItem {
+  certificate_id: string
+  submission_id: string
+  issued_at: string
+  overall_confidence: number
+  reliability_class: string
+}

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import type {
+  CertificateListItem,
   CertificateResponse,
   MerkleProofResponse,
   SubmissionResponse,
@@ -33,6 +34,11 @@ export async function getCertificate(submissionId: string): Promise<CertificateR
   const { data } = await client.get<CertificateResponse>(
     `/submissions/${submissionId}/certificate`
   )
+  return data
+}
+
+export async function listCertificates(): Promise<CertificateListItem[]> {
+  const { data } = await client.get<CertificateListItem[]>('/certificates')
   return data
 }
 

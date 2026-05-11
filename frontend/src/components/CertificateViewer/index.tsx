@@ -47,7 +47,7 @@ export default function CertificateViewer() {
 
   if (isLoading || !cert) {
     return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-brand" />
       </div>
     )
@@ -55,7 +55,7 @@ export default function CertificateViewer() {
 
   if (isError) {
     return (
-      <div className="min-h-screen bg-surface text-ink flex items-center justify-center px-4">
+      <div className="flex-1 text-ink flex items-center justify-center px-4">
         <div className="text-center">
           <AlertTriangle className="mx-auto mb-4 text-red-600 w-10 h-10" />
           <p className="text-lg font-medium">Certificate not found</p>
@@ -70,7 +70,7 @@ export default function CertificateViewer() {
   const { certificate_id, issued_at, evidence_package, timestamp_proofs, analysis, attribution_language } = cert
 
   return (
-    <div className="min-h-screen bg-surface text-ink px-4 py-12">
+    <div className="flex-1 text-ink px-4 py-12">
       <div className="max-w-3xl mx-auto space-y-8">
 
         {/* Header */}

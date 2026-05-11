@@ -32,7 +32,7 @@ export default function StatusDashboard() {
   const currentIndex = data ? stepIndex(data.status) : -1
 
   return (
-    <div className="min-h-screen bg-surface text-ink flex flex-col items-center justify-center px-4 py-12">
+    <div className="flex-1 text-ink flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-lg space-y-8">
         <div>
           <h1 className="text-2xl font-bold">Processing status</h1>

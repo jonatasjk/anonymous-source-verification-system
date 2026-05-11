@@ -7,10 +7,26 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.db import Submission, Certificate
-from app.models.schemas import CertificateResponse
+from app.models.schemas import CertificateListItem, CertificateResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+@router.get("/certificates", response_model=list[CertificateListItem])
+def list_certificates(db: Session = Depends(get_db)):
+    """Return a summary list of all issued certificates, newest first."""
+    certs = db.query(Certificate).order_by(Certificate.issued_at.desc()).all()
+    return [
+        CertificateListItem(
+            certificate_id=c.certificate_id,
+            submission_id=c.submission_id,
+            issued_at=c.issued_at,
+            overall_confidence=c.payload["analysis"]["overall_confidence"],
+            reliability_class=c.payload["analysis"]["reliability_class"],
+        )
+        for c in certs
+    ]
 
 
 def _get_certificate_or_404(submission_id: str, db: Session) -> Certificate:
