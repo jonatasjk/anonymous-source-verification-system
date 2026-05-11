@@ -33,6 +33,7 @@ def _generate_cert_id() -> str:
 
 def _build_attribution_language(
     cert_id: str,
+    overall_confidence: int,
     attribution_quotes: list[str] | None = None,
     platform_name: str = "ASVS",
 ) -> list[str]:
@@ -48,6 +49,24 @@ def _build_attribution_language(
         sentence = text.replace("{platform}", platform_name).replace("{cert_id}", cert_id)
         if sentence:
             sentences.append(sentence)
+
+    # Guarantee journalists always have something to work with.
+    if not sentences:
+        if overall_confidence >= 40:
+            sentences.append(
+                f"According to a source whose materials were independently verified by "
+                f"{platform_name} (Certificate {cert_id}), the submitted evidence "
+                f"warrants further investigation."
+            )
+        else:
+            sentences.append(
+                f"A source independently verified by {platform_name} "
+                f"(Certificate {cert_id}) alleged that the submitted materials "
+                f"contain information of potential public interest; confidence in the "
+                f"evidence is low and independent corroboration is strongly advised "
+                f"before publication."
+            )
+
     return sentences
 
 
@@ -109,6 +128,7 @@ def generate_certificate(submission_id: str, db: Session) -> str:
 
     attribution = _build_attribution_language(
         cert_id,
+        analysis.overall_confidence,
         attribution_quotes=analysis.attribution_quotes or [],
         platform_name=settings.platform_name,
     )

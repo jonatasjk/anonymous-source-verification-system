@@ -144,8 +144,9 @@ the safety data was altered before submission.`
 - Return an empty list if the evidence package is empty or unreadable.
 
 If the evidence package is empty or entirely unreadable, return all scores as 0, reliability_class \
-as "LOW", add a single red_flag: "Evidence package could not be evaluated.", and return an \
-empty list for attribution_sentences.
+as "LOW", add a single red_flag: "Evidence package could not be evaluated.", and return a \
+single `alleged`-tone sentence in attribution_sentences noting that the materials could not be \
+evaluated (still using {platform} and {cert_id} placeholders).
 """
 
 
