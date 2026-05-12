@@ -81,5 +81,9 @@ export async function getCertificateById(certificateId: string): Promise<Certifi
 }
 
 export function certificatePdfUrl(submissionId: string): string {
-  return `/api/submissions/${submissionId}/certificate.pdf`
+  // When using mock data, return the bundled sample certificate PDF
+  if (!submissionId || submissionId.startsWith('mock-')) {
+    return '/CERT-2026-590845.pdf'
+  }
+  return `${import.meta.env.VITE_API_URL ?? '/api'}/submissions/${submissionId}/certificate.pdf`
 }
