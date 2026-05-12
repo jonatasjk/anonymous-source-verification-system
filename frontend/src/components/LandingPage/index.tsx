@@ -201,7 +201,7 @@ export default function LandingPage() {
         <div className="relative max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 text-sm mb-8">
             <ShieldCheck className="w-4 h-4" />
-            Cryptographic evidence verification for investigative journalists
+            AI-powered evidence verification
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight mb-6">
             Prove when you received it.
