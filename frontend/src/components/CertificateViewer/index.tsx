@@ -88,6 +88,8 @@ export default function CertificateViewer() {
           </div>
           <a
             href={certificatePdfUrl(id!)}
+            target="_blank"
+            rel="noreferrer"
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-card hover:bg-surface-border border border-surface-border text-sm font-medium transition-colors"
           >
             <FileDown className="w-4 h-4" />
