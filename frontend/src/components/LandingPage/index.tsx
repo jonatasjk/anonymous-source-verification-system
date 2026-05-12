@@ -372,8 +372,74 @@ export default function LandingPage() {
       </section>
 
       {/* ── FINAL CTA ── */}
-      <section className="py-24 px-6 bg-brand text-white text-center">
-        <div className="max-w-2xl mx-auto">
+      <section className="relative overflow-hidden py-24 px-6 bg-brand text-white text-center">
+
+        {/* background layers */}
+        <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
+          {/* film grain */}
+          <svg className="absolute inset-0 w-full h-full opacity-[0.07]" xmlns="http://www.w3.org/2000/svg">
+            <filter id="cta-noise">
+              <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="4" stitchTiles="stitch" />
+              <feColorMatrix type="saturate" values="0" />
+            </filter>
+            <rect width="100%" height="100%" filter="url(#cta-noise)" />
+          </svg>
+          {/* dot matrix */}
+          <svg className="absolute inset-0 w-full h-full opacity-[0.09]" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="cta-dots" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+                <circle cx="1" cy="1" r="1" fill="white" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#cta-dots)" />
+          </svg>
+          {/* warm centre glow */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_65%_100%_at_50%_50%,rgba(107,18,40,0.55),transparent)]" />
+          {/* edge vignette */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_75%_at_50%_50%,transparent_45%,rgba(25,4,10,0.75))]" />
+          {/* top hairline */}
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          {/* seal — bottom right */}
+          <div className="absolute -bottom-20 -right-20 w-72 h-72 opacity-[0.10]">
+            <svg viewBox="-130 -130 260 260" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="0" cy="0" r="122" fill="none" stroke="white" strokeWidth="1.2" />
+              <circle cx="0" cy="0" r="96"  fill="none" stroke="white" strokeWidth="0.7" />
+              <circle cx="0" cy="0" r="70"  fill="none" stroke="white" strokeWidth="0.7" />
+              <circle cx="0" cy="0" r="48"  fill="none" stroke="white" strokeWidth="0.9" />
+              <circle cx="0" cy="0" r="28"  fill="none" stroke="white" strokeWidth="0.7" />
+              <circle cx="0" cy="0" r="12"  fill="none" stroke="white" strokeWidth="1.1" />
+              {Array.from({ length: 30 }, (_, i) => {
+                const a = (i / 30) * Math.PI * 2
+                const major = i % 5 === 0
+                return (
+                  <line
+                    key={i}
+                    x1={Math.cos(a) * (major ? 108 : 115)} y1={Math.sin(a) * (major ? 108 : 115)}
+                    x2={Math.cos(a) * 122} y2={Math.sin(a) * 122}
+                    stroke="white" strokeWidth={major ? 1.4 : 0.6}
+                  />
+                )
+              })}
+              <line x1="-122" y1="0" x2="122" y2="0" stroke="white" strokeWidth="0.4" strokeDasharray="3 8" />
+              <line x1="0" y1="-122" x2="0" y2="122" stroke="white" strokeWidth="0.4" strokeDasharray="3 8" />
+              <circle cx="0" cy="0" r="5" fill="none" stroke="white" strokeWidth="1.2" />
+              <circle cx="0" cy="0" r="2" fill="white" opacity="0.8" />
+            </svg>
+          </div>
+          {/* mirror seal — top left, smaller */}
+          <div className="absolute -top-16 -left-16 w-48 h-48 opacity-[0.07]">
+            <svg viewBox="-80 -80 160 160" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="0" cy="0" r="74" fill="none" stroke="white" strokeWidth="1" />
+              <circle cx="0" cy="0" r="56" fill="none" stroke="white" strokeWidth="0.6" />
+              <circle cx="0" cy="0" r="40" fill="none" stroke="white" strokeWidth="0.6" />
+              <circle cx="0" cy="0" r="24" fill="none" stroke="white" strokeWidth="0.8" />
+              <line x1="-74" y1="0" x2="74" y2="0" stroke="white" strokeWidth="0.4" strokeDasharray="2 7" />
+              <line x1="0" y1="-74" x2="0" y2="74" stroke="white" strokeWidth="0.4" strokeDasharray="2 7" />
+            </svg>
+          </div>
+        </div>
+
+        <div className="relative max-w-2xl mx-auto">
           <ShieldCheck className="w-12 h-12 text-white/70 mx-auto mb-5" />
           <h2 className="text-3xl font-bold mb-4">Ready to verify your evidence?</h2>
           <p className="text-white/65 mb-8 leading-relaxed">
