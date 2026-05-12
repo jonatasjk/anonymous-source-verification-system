@@ -33,7 +33,6 @@ The core problem: anyone can hash a file *after* creating it. ASVS solves this b
 
 | Document | Description |
 |---|---|
-| [docs/BUSINESS_REQUIREMENTS.md](docs/BUSINESS_REQUIREMENTS.md) | Objectives, sample scenario, and certificate output format |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System design, component breakdown, security model, and scope decisions |
 | [docs/ANALYSIS_METHODOLOGY.md](docs/ANALYSIS_METHODOLOGY.md) | How the LLM analysis works, scoring dimensions, weights, and output fields |
 | [docs/sequence-diagram.puml](docs/sequence-diagram.puml) | Full end-to-end PlantUML sequence diagram |

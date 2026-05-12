@@ -8,11 +8,30 @@ import type {
   VerifyRequest,
   VerifyResponse,
 } from '@/types/certificate'
+import { getMockResponse } from '@/api/mock'
 
 const client = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '/api',
   timeout: 60_000,
 })
+
+// When the backend is unreachable (network error / timeout) fall back to mock data.
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const isNetworkError = !error.response // no HTTP response = backend unreachable
+    if (isNetworkError) {
+      const url: string = error.config?.url ?? ''
+      const method: string = error.config?.method ?? 'get'
+      const mock = getMockResponse(url, method)
+      if (mock !== null) {
+        console.warn('[ASVS] Backend unreachable — serving mock data for', url)
+        return Promise.resolve({ data: mock, status: 200, headers: {}, config: error.config })
+      }
+    }
+    return Promise.reject(error)
+  }
+)
 
 export async function submitFiles(files: File[]): Promise<SubmissionResponse> {
   const form = new FormData()
