@@ -15,19 +15,16 @@ const client = axios.create({
   timeout: 60_000,
 })
 
-// When the backend is unreachable (network error / timeout) fall back to mock data.
+// When the backend is unreachable or returns an error, fall back to mock data.
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    const isNetworkError = !error.response // no HTTP response = backend unreachable
-    if (isNetworkError) {
-      const url: string = error.config?.url ?? ''
-      const method: string = error.config?.method ?? 'get'
-      const mock = getMockResponse(url, method)
-      if (mock !== null) {
-        console.warn('[ASVS] Backend unreachable — serving mock data for', url)
-        return Promise.resolve({ data: mock, status: 200, headers: {}, config: error.config })
-      }
+    const url: string = error.config?.url ?? ''
+    const method: string = error.config?.method ?? 'get'
+    const mock = getMockResponse(url, method)
+    if (mock !== null) {
+      console.warn('[ASVS] Backend unavailable — serving mock data for', url)
+      return Promise.resolve({ data: mock, status: 200, headers: {}, config: error.config })
     }
     return Promise.reject(error)
   }
