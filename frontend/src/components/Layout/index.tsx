@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Link, Outlet } from 'react-router-dom'
 import { ShieldCheck, Upload, Award, Search, Home } from 'lucide-react'
 
 const navItems = [
@@ -13,11 +13,13 @@ export default function Layout() {
     <div className="flex flex-col min-h-screen bg-surface text-ink">
       {/* Header */}
       <header className="bg-brand flex items-center gap-3 px-6 h-14 flex-shrink-0 shadow-sm">
-        <ShieldCheck className="w-6 h-6 text-white/90" />
-        <span className="font-bold tracking-tight text-white text-lg leading-none">ASVS</span>
-        <span className="text-white/50 text-sm hidden sm:block leading-none">
-          Anonymous Source Verification System
-        </span>
+        <Link to="/" className="flex items-center gap-3 group">
+          <ShieldCheck className="w-6 h-6 text-white/90 group-hover:text-white transition-colors" />
+          <span className="font-bold tracking-tight text-white text-lg leading-none group-hover:text-white/90 transition-colors">ASVS</span>
+          <span className="text-white/50 text-sm hidden sm:block leading-none group-hover:text-white/70 transition-colors">
+            Anonymous Source Verification System
+          </span>
+        </Link>
       </header>
 
       {/* Body */}

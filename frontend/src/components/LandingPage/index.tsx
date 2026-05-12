@@ -82,13 +82,13 @@ export default function LandingPage() {
       {/* ── NAV ── */}
       <header className="sticky top-0 z-10 bg-brand/95 backdrop-blur-sm border-b border-brand-dark shadow-sm">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="w-6 h-6 text-white/90" />
-            <span className="font-bold tracking-tight text-white text-lg">ASVS</span>
-            <span className="text-white/40 text-sm hidden sm:block">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <ShieldCheck className="w-6 h-6 text-white/90 group-hover:text-white transition-colors" />
+            <span className="font-bold tracking-tight text-white text-lg group-hover:text-white/90 transition-colors">ASVS</span>
+            <span className="text-white/40 text-sm hidden sm:block group-hover:text-white/60 transition-colors">
               Anonymous Source Verification System
             </span>
-          </div>
+          </Link>
           <div className="flex items-center gap-3">
             <Link
               to="/certificates"
@@ -114,8 +114,91 @@ export default function LandingPage() {
       </header>
 
       {/* ── HERO ── */}
-      <section className="bg-brand text-white py-24 px-6">
-        <div className="max-w-3xl mx-auto text-center">
+      <section className="relative overflow-hidden bg-brand text-white py-24 px-6">
+        {/* ── HERO BACKGROUND ── */}
+        <div className="absolute inset-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
+
+          {/* 1. Film grain — tactile texture */}
+          <svg className="absolute inset-0 w-full h-full opacity-[0.07]" xmlns="http://www.w3.org/2000/svg">
+            <filter id="hero-noise">
+              <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="4" stitchTiles="stitch" />
+              <feColorMatrix type="saturate" values="0" />
+            </filter>
+            <rect width="100%" height="100%" filter="url(#hero-noise)" />
+          </svg>
+
+          {/* 2. Dot matrix grid */}
+          <svg className="absolute inset-0 w-full h-full opacity-[0.11]" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="hero-dots" x="0" y="0" width="36" height="36" patternUnits="userSpaceOnUse">
+                <circle cx="1" cy="1" r="1" fill="white" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#hero-dots)" />
+          </svg>
+
+          {/* 3. Warm deep centre glow */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_90%_at_50%_30%,rgba(107,18,40,0.60),transparent)]" />
+
+          {/* 4. Edge vignette — frames the section with depth */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_95%_80%_at_50%_50%,transparent_48%,rgba(25,4,10,0.80))]" />
+
+          {/* 5. Top hairline */}
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+
+          {/* 6. Left ambient bleed */}
+          <div className="absolute -left-40 top-1/2 -translate-y-1/2 w-[420px] h-[420px] rounded-full bg-brand-light/25 blur-[100px]" />
+
+          {/* 7. Cryptographic seal — right side */}
+          <div className="absolute right-0 sm:right-[5%] lg:right-[9%] top-1/2 -translate-y-1/2 w-[300px] h-[300px]">
+            {/* pulsing glow behind the seal */}
+            <div
+              className="absolute inset-0 rounded-full bg-brand-light/20 blur-[55px] animate-pulse"
+              style={{ animationDuration: '4s' }}
+            />
+            <svg
+              viewBox="-150 -150 300 300"
+              className="relative w-full h-full opacity-[0.18]"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* concentric rings */}
+              <circle cx="0" cy="0" r="140" fill="none" stroke="white" strokeWidth="1.5" />
+              <circle cx="0" cy="0" r="110" fill="none" stroke="white" strokeWidth="0.8" />
+              <circle cx="0" cy="0" r="82"  fill="none" stroke="white" strokeWidth="0.8" />
+              <circle cx="0" cy="0" r="58"  fill="none" stroke="white" strokeWidth="1.0" />
+              <circle cx="0" cy="0" r="36"  fill="none" stroke="white" strokeWidth="0.8" />
+              <circle cx="0" cy="0" r="18"  fill="none" stroke="white" strokeWidth="1.2" />
+              {/* tick marks on outer ring */}
+              {Array.from({ length: 36 }, (_, i) => {
+                const a = (i / 36) * Math.PI * 2
+                const major = i % 3 === 0
+                const r0 = major ? 125 : 133
+                return (
+                  <line
+                    key={i}
+                    x1={Math.cos(a) * r0} y1={Math.sin(a) * r0}
+                    x2={Math.cos(a) * 140} y2={Math.sin(a) * 140}
+                    stroke="white" strokeWidth={major ? 1.5 : 0.7}
+                  />
+                )
+              })}
+              {/* dashed crosshairs */}
+              <line x1="-148" y1="0" x2="148" y2="0" stroke="white" strokeWidth="0.5" strokeDasharray="3 9" />
+              <line x1="0" y1="-148" x2="0" y2="148" stroke="white" strokeWidth="0.5" strokeDasharray="3 9" />
+              {/* diagonal guides (very faint) */}
+              <line x1="-104" y1="-104" x2="104" y2="104" stroke="white" strokeWidth="0.35" opacity="0.4" />
+              <line x1="104" y1="-104" x2="-104" y2="104" stroke="white" strokeWidth="0.35" opacity="0.4" />
+              {/* centre target */}
+              <circle cx="0" cy="0" r="7" fill="none" stroke="white" strokeWidth="1.5" />
+              <circle cx="0" cy="0" r="2.5" fill="white" opacity="0.9" />
+            </svg>
+          </div>
+
+          {/* 8. Subtle beacon ring (centre-right, animates) */}
+          <div className="absolute right-[calc(5%+134px)] sm:right-[calc(9%+134px)] top-1/2 -translate-y-1/2 w-6 h-6 rounded-full border border-white/30 animate-ping" style={{ animationDuration: '3s' }} />
+
+        </div>
+        <div className="relative max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 rounded-full px-4 py-1.5 text-sm mb-8">
             <ShieldCheck className="w-4 h-4" />
             Cryptographic evidence verification for investigative journalists
